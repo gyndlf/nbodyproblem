@@ -3,15 +3,17 @@
 using CairoMakie
 
 
-function generateparticles(N; xmax=10, ymax=10, mmin=0.2, mmax=1, vmax=1)
-    """Generate N particles (2D) in (0:xmax, 0:ymax) of masses [1:mmax] with max (initial) speed vmax"""
-    p = (rand(N, 2) .- 0.5) .* 2vmax / sqrt(2)
-    q = rand(N, 2)
+function generateparticles(N; xmax=20, ymax=20, mmin=0.2, mmax=1, vmax=1, V::Function=(x,y)->0)
+    """Generate N particles (2D) in (0:xmax, 0:ymax) of masses [1:mmax] with max (initial) speed vmax.
+    V(x,y) is a potential velocity function to start us off"""
+    #p = (rand(N, 2) .- 0.5) .* 2vmax / sqrt(2)
+    q = (rand(N, 2) .- 0.5)
     m = rand(N) .* (mmax-mmin) .+ mmin
+    v = (rand(N,2) .- 0.5) .* vmax
+    v += mapreduce(permutedims, vcat, V.(q[:,1], q[:,2]))
     q[:,1] .*= xmax  # scale to fill the space
     q[:,2] .*= ymax
-    p .*= m  # scale by mass
-    return q, p, m
+    return q, v.*m, m
 end
 
 function Hp(p, m)
@@ -19,7 +21,7 @@ function Hp(p, m)
     return p ./ m
 end
 
-function norm(x; ϵ=0.1)
+function norm(x; ϵ=1)
     """Return sqrt norm of the vector x. ϵ is the minimum distance possible"""
     return max(sqrt(sum([xx^2 for xx in x])), ϵ)
 end
@@ -110,10 +112,15 @@ end
 
 
 function run()
-    q0, p0, m = generateparticles(20, mmax=1)
-    Q, P = stormer(q0, p0, m, 50, Δt=0.1, G=0.1)
+    V(x,y) = [-y, x]
+    q0, p0, m = generateparticles(20, vmax=0.01, mmax=5, V=V)
+    m[1] = 10000
+    m[2] = 10000
+    q0[1, :] = [0, 0]
+    q0[2, :] = [1000, 0]
+    Q, P = stormer(q0, p0, m, 50, Δt=0.01, G=10)
     plotpaths(Q)
-    animatepaths(Q)
+    animatepaths(Q, tskip=10)
 end
 
 
