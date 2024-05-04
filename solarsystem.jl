@@ -3,6 +3,7 @@
 #
 
 using CairoMakie
+include("hamiltonian.jl")
 
 # Mass in units of solar masses (i.e. sun has mass 1)
 # Position in astronomical units (1AU ~ 1.49e8 km)
