@@ -21,9 +21,9 @@ function Hp(p, m)
     return p ./ m
 end
 
-function norm(x; ϵ=1)
+function norm(x)
     """Return sqrt norm of the vector x. ϵ is the minimum distance possible"""
-    return max(sqrt(sum([xx^2 for xx in x])), ϵ)
+    return sqrt(sum([xx^2 for xx in x]))
 end
 
 function Hq(q, m, G)
@@ -53,7 +53,7 @@ function stormer(q0, p0, m, tmax; Δt=0.1, G=1.0)
     for t in 2:tnum
         p = P[t-1,:,:]
         q = Q[t-1,:,:]
-    
+
         q12 = q + Δt/2 * Hp(p, m)
         #p12 = p - Δt/2 * Hq(q12)
         P[t,:,:] = p - Δt * Hq(q12, m, G)
@@ -85,7 +85,7 @@ function plotstate(q; fname="particles.png")
 end
 
 
-function animatepaths(Q; tskip=0, taillength=5, fname="particles.mp4")
+function animatepaths(Q; tskip=0, taillength=5, fname="particles.mp4", bounds=0)
     """Animate the paths the planets take"""
     t = Observable(taillength) # current time parameter. Varys over the animation
     fig = Figure()
@@ -99,10 +99,14 @@ function animatepaths(Q; tskip=0, taillength=5, fname="particles.mp4")
         lines!(ax, @lift(Q[$tail,k,1]), @lift(Q[$tail,k,2]))
     end
 
-    limits!(ax,
-        minimum(Q[:,:,1]), maximum(Q[:,:,1]),
-        minimum(Q[:,:,2]), maximum(Q[:,:,2]),
-    )
+    if bounds == 0
+        limits!(ax,
+            minimum(Q[:,:,1]), maximum(Q[:,:,1]),
+            minimum(Q[:,:,2]), maximum(Q[:,:,2]),
+        )
+    else 
+        limits!(ax, -bounds, bounds, -bounds, bounds)
+    end
 
     record(fig, fname, taillength:tskip+1:size(Q)[1]; framerate = 20) do tstep
         t[] = tstep
@@ -113,15 +117,30 @@ end
 
 function run()
     V(x,y) = [-y, x]
-    q0, p0, m = generateparticles(20, vmax=0.01, mmax=5, V=V)
-    m[1] = 10000
-    m[2] = 10000
+    q0, p0, m = generateparticles(20, xmax=2000, ymax=2000, vmax=1, mmax=5, V=V)
+    p0 .*= 0.001
+    m[1] = 1000
+    m[2] = 1000
     q0[1, :] = [0, 0]
     q0[2, :] = [1000, 0]
-    Q, P = stormer(q0, p0, m, 50, Δt=0.01, G=10)
+    tmax = 1000
+    Δt = 0.01
+    Q, P = stormer(q0, p0, m, tmax, Δt=Δt, G=1.)
     plotpaths(Q)
-    animatepaths(Q, tskip=10)
+    animatepaths(Q, tskip=round(Integer, tmax/Δt/100), bounds=2000)
 end
+
+function test()
+    q0 = [0 1; 1 0]
+    p0 = [0 -1; 0 1] .* 0.001
+    m = [1, 1] .* 0.1
+    tmax = 100
+    Δt = 0.001
+    Q, P = stormer(q0, p0, m, tmax, Δt=Δt, G=0.1)
+    plotpaths(Q)
+    animatepaths(Q, tskip=round(Integer, tmax/Δt/100))
+end
+
 
 
 
