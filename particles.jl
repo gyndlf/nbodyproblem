@@ -85,7 +85,7 @@ function plotstate(q; fname="particles.png")
 end
 
 
-function animatepaths(Q; tskip=0, taillength=5, fname="particles.mp4", bounds=0)
+function animatepaths(Q, m; tskip=0, taillength=5, fname="particles.mp4", bounds=0)
     """Animate the paths the planets take"""
     t = Observable(taillength) # current time parameter. Varys over the animation
     fig = Figure()
@@ -93,7 +93,9 @@ function animatepaths(Q; tskip=0, taillength=5, fname="particles.mp4", bounds=0)
 
     tail = @lift($t-taillength+1:$t)
 
-    scatter!(ax, @lift(Q[$t,:,1]), @lift(Q[$t,:,2]))
+    msize = log.(m) .* 30/log(maximum(m))
+
+    scatter!(ax, @lift(Q[$t,:,1]), @lift(Q[$t,:,2]), markersize=msize)
     for k in 1:size(Q)[2]
         #scatter!(ax, @lift(Q[$t,k,1]), @lift(Q[$t,k,2]))
         lines!(ax, @lift(Q[$tail,k,1]), @lift(Q[$tail,k,2]))
@@ -121,13 +123,13 @@ function run()
     p0 .*= 0.001
     m[1] = 1000
     m[2] = 1000
-    q0[1, :] = [0, 0]
+    q0[1, :] = [-1000, 0]
     q0[2, :] = [1000, 0]
     tmax = 1000
     Δt = 0.01
     Q, P = stormer(q0, p0, m, tmax, Δt=Δt, G=1.)
     plotpaths(Q)
-    animatepaths(Q, tskip=round(Integer, tmax/Δt/100), bounds=2000)
+    animatepaths(Q, m, tskip=round(Integer, tmax/Δt/200), taillength=100, bounds=2000)
 end
 
 function test()
@@ -137,8 +139,8 @@ function test()
     tmax = 100
     Δt = 0.001
     Q, P = stormer(q0, p0, m, tmax, Δt=Δt, G=0.1)
-    plotpaths(Q)
-    animatepaths(Q, tskip=round(Integer, tmax/Δt/100))
+    plotpaths(Q, fname="2particles.png")
+    animatepaths(Q, m, tskip=round(Integer, tmax/Δt/100), fname="2particles.mp4")
 end
 
 
